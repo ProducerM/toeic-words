@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 
 export default function NotebookPage() {
   return (
-    <main className="flex flex-1 justify-center px-4 py-12">
+    <main className="flex flex-1 justify-center px-4 pt-4 pb-12">
       <Notebook />
     </main>
   );

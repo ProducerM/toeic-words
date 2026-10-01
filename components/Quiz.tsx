@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useNotebook } from "@/lib/notebook";
+import { incrementUsage } from "@/lib/usage";
 import { WORDS, type Word } from "@/lib/words";
 
 const ROUND_SIZE = 20;
@@ -89,6 +90,7 @@ export default function Quiz() {
   const finished = round !== null && index >= round.length;
 
   function start() {
+    incrementUsage();
     setRound(buildRound());
     setIndex(0);
     setPhase("answering");
@@ -142,9 +144,6 @@ export default function Quiz() {
         >
           시작하기 ({ROUND_SIZE}문제)
         </button>
-        <Link href="/notebook" className="text-sm font-medium text-slate-600 underline-offset-4 hover:underline">
-          📒 단어 암기장 ({notebook.words.length})
-        </Link>
       </div>
     );
   }
