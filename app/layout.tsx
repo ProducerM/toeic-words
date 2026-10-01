@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "토익 영단어 암기",
+  title: "토익 영단어 퀴즈",
   description: "한국어 뜻을 보고 영어 단어를 고르는 토익 단어 퀴즈",
 };
 

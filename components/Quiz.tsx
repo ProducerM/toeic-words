@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useNotebook } from "@/lib/notebook";
 import { WORDS, type Word } from "@/lib/words";
 
 const ROUND_SIZE = 20;
@@ -13,6 +15,11 @@ type Question = {
 };
 
 type Phase = "answering" | "correct" | "revealed";
+
+type Miss = {
+  word: Word;
+  result: "second" | "missed";
+};
 
 type Stats = {
   first: number;
@@ -75,6 +82,8 @@ export default function Quiz() {
   const [phase, setPhase] = useState<Phase>("answering");
   const [wrong, setWrong] = useState<string[]>([]);
   const [stats, setStats] = useState<Stats>({ first: 0, second: 0, missed: 0 });
+  const [misses, setMisses] = useState<Miss[]>([]);
+  const notebook = useNotebook();
 
   const question = round?.[index];
   const finished = round !== null && index >= round.length;
@@ -85,6 +94,7 @@ export default function Quiz() {
     setPhase("answering");
     setWrong([]);
     setStats({ first: 0, second: 0, missed: 0 });
+    setMisses([]);
   }
 
   function next() {
@@ -104,7 +114,12 @@ export default function Quiz() {
 
     if (option === question.word.en) {
       setPhase("correct");
-      setStats((s) => (wrong.length === 0 ? { ...s, first: s.first + 1 } : { ...s, second: s.second + 1 }));
+      if (wrong.length === 0) {
+        setStats((s) => ({ ...s, first: s.first + 1 }));
+      } else {
+        setStats((s) => ({ ...s, second: s.second + 1 }));
+        setMisses((m) => [...m, { word: question.word, result: "second" }]);
+      }
       return;
     }
 
@@ -112,6 +127,7 @@ export default function Quiz() {
     if (wrong.length >= 1) {
       setPhase("revealed");
       setStats((s) => ({ ...s, missed: s.missed + 1 }));
+      setMisses((m) => [...m, { word: question.word, result: "missed" }]);
     }
   }
 
@@ -119,18 +135,16 @@ export default function Quiz() {
     return (
       <div className="flex flex-col items-center gap-6 text-center">
         <p className="text-sm font-semibold tracking-widest text-rose-600">TOEIC VOCA</p>
-        <h1 className="text-4xl font-bold text-slate-900">토익 영단어 암기</h1>
-        <p className="max-w-sm leading-relaxed text-slate-600">
-          한국어 뜻을 보고 알맞은 영어 단어를 고르세요.
-          <br />
-          틀리면 힌트가 한 번 주어지고, 두 번 틀리면 정답을 알려드려요.
-        </p>
+        <h1 className="text-4xl font-bold text-slate-900">토익 영단어 퀴즈</h1>
         <button
           onClick={start}
           className="rounded-full bg-slate-900 px-8 py-3 font-semibold text-white transition hover:bg-slate-700"
         >
           시작하기 ({ROUND_SIZE}문제)
         </button>
+        <Link href="/notebook" className="text-sm font-medium text-slate-600 underline-offset-4 hover:underline">
+          📒 단어 암기장 ({notebook.words.length})
+        </Link>
       </div>
     );
   }
@@ -158,12 +172,61 @@ export default function Quiz() {
             <b>{stats.missed}</b>
           </li>
         </ul>
-        <button
-          onClick={start}
-          className="rounded-full bg-slate-900 px-8 py-3 font-semibold text-white transition hover:bg-slate-700"
-        >
-          다시 하기
-        </button>
+
+        {misses.length > 0 && (
+          <section className="w-full max-w-md text-left">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">틀린 단어 ({misses.length})</h3>
+              <button
+                onClick={() => notebook.add(misses.map((m) => m.word))}
+                disabled={misses.every((m) => notebook.has(m.word.en))}
+                className="rounded-full border border-slate-300 px-4 py-1.5 text-sm font-medium text-slate-700 transition hover:bg-white disabled:cursor-default disabled:opacity-50"
+              >
+                모두 암기장에 저장
+              </button>
+            </div>
+            <ul className="grid gap-2">
+              {misses.map(({ word, result }) => {
+                const saved = notebook.has(word.en);
+                return (
+                  <li key={word.en} className="flex items-center gap-3 rounded-lg bg-white px-4 py-3 shadow-sm">
+                    <div className="flex-1">
+                      <p className="font-semibold text-slate-900">{word.en}</p>
+                      <p className="text-sm text-slate-500">{word.ko}</p>
+                    </div>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${result === "missed" ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700"}`}
+                    >
+                      {result === "missed" ? "오답" : "힌트 후 정답"}
+                    </span>
+                    <button
+                      onClick={() => notebook.add([word])}
+                      disabled={saved}
+                      className="w-16 rounded-md bg-slate-900 px-2 py-1 text-xs font-medium text-white transition hover:bg-slate-700 disabled:bg-slate-200 disabled:text-slate-500"
+                    >
+                      {saved ? "저장됨" : "저장"}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            onClick={start}
+            className="rounded-full bg-slate-900 px-8 py-3 font-semibold text-white transition hover:bg-slate-700"
+          >
+            다시 하기
+          </button>
+          <Link
+            href="/notebook"
+            className="rounded-full border border-slate-300 px-8 py-3 font-semibold text-slate-700 transition hover:bg-white"
+          >
+            📒 단어 암기장 ({notebook.words.length})
+          </Link>
+        </div>
       </div>
     );
   }
